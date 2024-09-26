@@ -1,19 +1,25 @@
 <?php
 
-try {
-    echo 'Current PHP version: ' . phpversion();
-    echo '<br />';
+$conf = new RdKafka\Conf();
+$conf->set('log_level', (string) LOG_DEBUG);
+$producer = new \RdKafka\Producer($conf);
 
-    $host = 'db';
-    $dbname = 'database';
-    $user = 'user';
-    $pass = 'pass';
-    $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8";
-    $conn = new PDO($dsn, $user, $pass);
-
-    echo 'Database connected successfully';
-    echo '<br />';
-} catch (\Throwable $t) {
-    echo 'Error: ' . $t->getMessage();
-    echo '<br />';
+if ($producer->addBrokers("kafka:9092") < 1) {
+    echo "Failed adding brokers\n";
+    exit;
 }
+
+$topic = $producer->newTopic("test");
+
+if (!$producer->getMetadata(false, $topic, 2000)) {
+    echo "Failed to get metadata, is broker down?\n";
+    exit;
+}
+
+$topic->produce(RD_KAFKA_PARTITION_UA, 0, $_SERVER['QUERY_STRING']);
+
+echo "Message published\n";
+
+
+
+
